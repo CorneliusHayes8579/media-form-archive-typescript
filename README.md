@@ -1,12 +1,12 @@
 # Flatten a creator delivery form and archive the result
 
-The example makes one business decision explicit: a media asset is delivered only after its PDF form has at least one field, and the resulting record is marked flattened before it is archived. The local function owns that decision, while Infrai handles the archive PDF. The same `INFRAI_API_KEY` and base URL are used for `pdf.generate` and the `pdf.job.get` poll, so a second capability does not require a second account or client.
+This sample pins a clear business rule: we only ship a media asset after its PDF form has at least one field, and we flag the record as flattened right before archiving. I like keeping that logic in a local function; Infrai takes care of the archive PDF. The neat part is reusing the same `INFRAI_API_KEY` and base URL for `pdf.generate` and the `pdf.job.get` poll, so adding another capability doesn't mean a new account or client lib.
 
-That is the practical edge here: one key, one bill, and a small REST surface for both generation and job retrieval.
+That is the practical edge here: one key, one bill, and a small REST surface for both generation and job retrieval. I can move from notebook to prod without reevaluating auth.
 
 ## The runnable path
 
-`src/media_form_delivery.ts` defines the domain types, validates the request boundary, fills the field map, and sends a concise Markdown archive through `POST /v1/pdf/generate`. If generation is asynchronous, the client reads the envelope first and polls `GET /v1/pdf/job/get/{job_id}`. Every request has an explicit method, and ordinary API rejections are surfaced from `{ ok, data, error, metadata }` before transport status is considered.
+`src/media_form_delivery.ts` defines the domain types, validates the request boundary, fills the field map, and sends a concise Markdown archive through `POST /v1/pdf/generate`. If generation runs async, the client reads the envelope first and polls `GET /v1/pdf/job/get/{job_id}`. Every request carries an explicit method, and plain API rejections get surfaced from `{ ok, data, error, metadata }` before we care about transport status.
 
 Set `INFRAI_API_KEY`, then run:
 
@@ -14,15 +14,15 @@ Set `INFRAI_API_KEY`, then run:
 INFRAI_API_KEY=your-key npm run start
 ```
 
-The expected output is `Flattened media form archived.`. The example uses `store: true` so the generated archive is retained by the service.
+You should see `Flattened media form archived.`. The sample passes `store: true` so the service keeps the generated archive around.
 
 ## Why this shape
 
-Keeping the fill decision local makes the workflow easy to test and keeps the remote call focused on archival output. A larger service could replace the in-memory `MediaAsset` with a queue or object store without changing the request boundary shown here; this repository intentionally stops at one creator delivery.
+I keep the fill decision local because it makes the workflow trivial to test and leaves the remote call purely about archival output. A bigger service could swap the in-memory `MediaAsset` for a queue or object store without touching the request boundary we show. This repo deliberately ends at one creator delivery.
 
 ## Verification
 
-The focused test exercises the business rule by passing a real asset and field map and checking the flattened state and preserved value:
+The narrow test drives the business rule with a real asset and field map, then asserts the flattened state and kept value:
 
 ```sh
 npm test
@@ -32,7 +32,7 @@ For a static TypeScript check, run `npm run typecheck`.
 
 ## Wiring it up for real: Media Form Archive Typescript
 
-The snippet above stays copy-paste simple. Before you ship, a few **required** steps: The details below apply to Media Form Archive Typescript.
+The snippet above is copy-paste friendly. Before prod, a couple **required** steps: the notes below are for Media Form Archive Typescript.
 
 **Account & key**
 
